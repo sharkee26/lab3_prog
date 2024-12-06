@@ -11,7 +11,7 @@ add_executable(containers main.cpp)
 # Опции компилятора для поддержки концептов в GCC
 target_compile_options(containers PRIVATE -fconcepts)
 
-# Устанавливаем путь для исполняемых файлов при установке пакета
+# Устанавливаем путь для исполняемых файлов при установке пакета.
 install(TARGETS containers DESTINATION bin)
 
 # Включаем CPack для создания пакетов (DEB и ZIP)
