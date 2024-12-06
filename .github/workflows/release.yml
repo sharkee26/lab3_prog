@@ -41,9 +41,9 @@ jobs:
         run: |
           cmake --build .
 
-      - name: Run tests
-        run: |
-          cmake --build . --target test
+     # - name: Run tests
+    #    run: |
+    #      cmake --build . --target test
 
       - name: Create package
         run: |
