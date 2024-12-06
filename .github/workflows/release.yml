@@ -1,99 +1,113 @@
-name: CMake on multiple platforms
+name: 'C++ CI'
 
 on:
   push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
-
+    branches:
+      - lab3
+      - feature/github_actions
+  release:
+    types: [published]
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
+  build_on_Ubuntu:
+    runs-on: ubuntu-latest
     permissions: write-all
-
-    strategy:
-      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
-      fail-fast: false
-
-      # Set up a matrix to run the following 3 configurations:
-      # 1. <Windows, Release, latest MSVC compiler toolchain on the default runner image, default generator>
-      # 2. <Linux, Release, latest GCC compiler toolchain on the default runner image, default generator>
-      # 3. <Linux, Release, latest Clang compiler toolchain on the default runner image, default generator>
-      #
-      # To add more build types (Release, Debug, RelWithDebInfo, etc.) customize the build_type list.
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        build_type: [Release]
-        c_compiler: [gcc]
-        include:
-          - os: windows-latest
-            os_short: win64
-            c_compiler: gcc
-            cpp_compiler: g++
-            generator: -G "MinGW Makefiles"
-            cpack_type: zip
-          - os: ubuntu-latest
-            os_short: Linux
-            c_compiler: gcc
-            cpp_compiler: g++
-            cpack_type: deb
-
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Install Dependencies
+        run: |
+            sudo apt-get update
+            sudo apt-get install -y build-essential cmake libgtest-dev
+      - name: Build Project
+        run: |
+            rm -rf build
+            mkdir build
+            cd build
+            cmake .. -DCMAKE_BUILD_TYPE=Release
+            cmake --build . --config Release
+      - name: Run Tests
+        run: |
+            cd build
+            ctest -V # Добавлен -V для verbose output
+        # Проверьте опции и настройки в CMakeLists.txt
+      
+      - name: Upload Release Asset
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-zip
+          path: ./your-project-name-Release.zip # Путь к Release ZIP-архиву
+      - name: Build Debug
+        run: |
+          cmake . -DPATCH_VERSION=${{ github.run_number }} -DCMAKE_BUILD_TYPE=Debug
+          cmake --build . --config Debug
+          cmake --build . --target package --config Debug
+      - name: Upload Debug Asset
+        uses: actions/upload-artifact@v3
+        with:
+          name: debug-deb
+          path: ./your-project-name-Debug.deb # Путь к Debug DEB-архиву
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.run_number }}-Linux2
+          release_name: Release ${{ github.run_number }} for linux3
+          draft: false
+          prerelease: false 
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./lab3-0.0.${{ github.run_number }}-Linux.deb
+          asset_name: lab3-0.0.${{ github.run_number }}-Linux.deb
+          asset_content_type: application/vnd.debian.binary-package
 
-    - name: Install minGW
-      if: matrix.os == 'windows-latest'
-      run: |
-        choco install mingw
-        echo "C:/mingw64/tools/bin" >> $env:GITHUB_PATH
-        gcc --version
-        g++ --version
+  build_macos:
+    runs-on: macos-latest
+    permissions: write-all
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+  # Устанавливаем gtest с помощью Homebrew
+      - run: |
+          brew update
+          brew install googletest
+          brew info googletest
 
-    - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: >
-        cmake -B .
-        ${{ matrix.generator }}
-        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
-        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
-        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -S ${{ github.workspace }}
-
-
-    - name: Build
-      # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
-      run: |
-        cmake --build . --config ${{ matrix.build_type }}
-        cmake --build . --target package --config ${{ matrix.build_type }}
-
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.run_number }}-${{ matrix.os_short }}
-        release_name: Release ${{ github.run_number }}-${{ matrix.os_short }}
-        draft: false
-        prerelease: false
-
-    - name: Upload Release Asset
-      id: upload-release-asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./containers-0.1.0-${{ matrix.os_short }}.${{ matrix.cpack_type }}
-        asset_name: containers-0.1.0-${{ matrix.os_short }}.${{ matrix.cpack_type }}
-        asset_content_type: application/${{ matrix.cpack_type }}
-
-    
-
-
-
-
-
-    
-
+  # Конфигурируем проект с помощью CMake, используя номер запуска для PATCH_VERSION 
+      - run: cmake . -DPATCH_VERSION=${{ github.run_number }}  
+  # Строим проект с помощью CMake
+      - run: cmake --build .
+  # Запускаем тесты
+      - run: cmake --build . --target test
+  # Создаем пакет
+      - run: cmake --build . --target package
+  # Создаем релиз для MacOS
+      - name: Create Release
+        id: create_release_macos
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.run_number }}-mac # Используем номер запуска для тега
+          release_name: Realise ${{ github.run_number }} for mac3
+          draft: false # Не публикуем релиз в черновике
+          prerelease: false # Не публикуем как предварительную версию
+  # Загружаем релизный ассет для MacOS
+      - name: Upload Release Asset (MacOS)
+        id: upload-release-asset-macos
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release_macos.outputs.upload_url }}
+          asset_path: ./lab3-0.0.${{ github.run_number }}-Darwin.zip
+          asset_name: lab3-0.0.${{ github.run_number }}-Darwin.zip
+          asset_content_type: application/zip
