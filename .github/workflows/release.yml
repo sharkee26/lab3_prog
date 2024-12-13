@@ -44,8 +44,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release_windows.outputs.upload_url }}
-          asset_path: ./laba3-0.0.${{ github.run_number }}-win64.zip
-          asset_name: laba3-0.0.${{ github.run_number }}-win64.zip
+          asset_path: ./lab3-0.0.${{ github.run_number }}-win64.zip
+          asset_name: lab3-0.0.${{ github.run_number }}-win64.zip
           asset_content_type: application/zip
   
   build_ubuntu:
@@ -86,8 +86,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release_ubuntu.outputs.upload_url }}
-          asset_path: ./laba3-0.0.${{ github.run_number }}-Linux.deb
-          asset_name: laba3-0.0.${{ github.run_number }}-Linux.deb
+          asset_path: ./lab3-0.0.${{ github.run_number }}-Linux.deb
+          asset_name: lab3-0.0.${{ github.run_number }}-Linux.deb
           asset_content_type: application/vnd.debian.binary-package
           allowUpdates: true # Разрешаем обновление уже загруженного ассета
 
