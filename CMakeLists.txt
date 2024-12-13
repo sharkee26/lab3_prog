@@ -1,28 +1,31 @@
-cmake_minimum_required(VERSION 3.5.0)
-project(containers VERSION 0.1.0 LANGUAGES C CXX)
+cmake_minimum_required(VERSION 3.10) # Устанавливает минимальную версию CMake, необходимую для этого проекта.
+set(PATCH_VERSION "1" CACHE INTERNAL "Patch version")
+set(PROJECT_VESRION 0.0.${PATCH_VERSION})
+# Создает переменные PATCH_VERSION и PROJECT_VESRION для управления версиями проекта.
 
-# Устанавливаем стандарт C++
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+project(lab3 VERSION ${PROJECT_VESRION}) # Определяет имя проекта lab3 и использует переменную PROJECT_VESRION для указания версии проекта.
+add_executable(lab3 main.cpp)
 
-# Основной исполняемый файл
-add_executable(containers main.cpp)
+set(CMAKE_CXX_STANDARD 17)
+set(CXX_STANDARD_REQUIRED ON)
 
-# Опции компилятора для поддержки концептов в GCC
-target_compile_options(containers PRIVATE -fconcepts)
+# Установка файлов для инсталляции
+install(TARGETS lab3 DESTINATION bin)
 
-# Устанавливаем путь для исполняемых файлов при установке пакета.
-install(TARGETS containers DESTINATION bin)
+set(CPACK_PROJECT_NAME lab3)
 
-# Включаем CPack для создания пакетов (DEB и ZIP)
-set(CPACK_GENERATOR "DEB;ZIP")
+set(CPACK_GENERATOR "ZIP;DEB")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
 
 set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
 set(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 set(CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
 
 set(CPACK_PACKAGE_CONTACT example@example.com)
+
 include(CPack)
 
+enable_testing() # Включает тестирование
 
-
+set(CPACK_PROJECT_NAME ${PROJECT_NAME})
+set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
